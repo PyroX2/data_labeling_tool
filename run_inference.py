@@ -4,46 +4,63 @@ import cv2
 from PIL import Image
 from time import time
 import os
+import argparse
 
+
+parser = argparse.ArgumentParser(
+                    prog='auto_labeling',
+                    description='Creates labels automatically using GroundingDINO')
+parser.add_argument('--input_video', "-i", required=True, type=str, help="Path to input video")
+parser.add_argument('--text_prompt', "-t", required=True, type=str, help="Name of object to label")
+parser.add_argument(
+    "--output_dir", "-o", type=str, default="outputs", required=True, help="output directory"
+)
+parser.add_argument('--start_sec', required=False, type=float, default=0, help="Second to start labeling from. Default is 0")
+parser.add_argument('--end_sec', required=False, type=float, default=0, help="Second to end labeling on. Default is the last frame of the video")
+parser.add_argument("--box_threshold", type=float, default=0.35, help="box threshold")
+parser.add_argument("--text_threshold", type=float, default=0.25, help="text threshold")
+parser.add_argument("--cpu-only", action="store_true", help="running on cpu only!", default=False)
+
+args = parser.parse_args()
 
 # Set constants
-TEXT_PROMPT = "drone"
-BOX_TRESHOLD = 0.35
-TEXT_TRESHOLD = 0.25
-START_SEC = 4
-END_SEC = 5
-TAG = "cloudy"
-VIDEO_PATH = "/mnt/nas-data/HardKill/hardkill_videos/data_validation_videos/rgb_1080p"
-FILENAME = 'dsv_rgb_1080p_nalot_air_9s_cloudy'
+text_prompt = args.text_prompt
+box_threshold = args.box_threshold
+text_threshold = args.text_threshold
+start_sec = args.start_sec
+end_sec = args.end_sec
+tag = args.tag
+video_path = "/mnt/nas-data/HardKill/hardkill_videos/data_validation_videos/rgb_1080p"
+filename = 'dsv_rgb_1080p_nalot_air_9s_cloudy'
 
 # Load model weights
 model = load_model("GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py", "weights/groundingdino_swint_ogc.pth", device="cpu")
 
 # Set output dirs and create them if they don't exist
-images_output_dir = os.path.join("outputs", TAG, FILENAME, "images")
-skipped_images_output_dir = os.path.join("outputs", TAG, FILENAME, "skipped_images")
-labels_output_dir = os.path.join("outputs", TAG, FILENAME, "labels")
-annotated_output_dir = os.path.join("outputs", TAG, FILENAME, "annotated")
+images_output_dir = os.path.join("outputs", tag, filename, "images")
+skipped_images_output_dir = os.path.join("outputs", tag, filename, "skipped_images")
+labels_output_dir = os.path.join("outputs", tag, filename, "labels")
+annotated_output_dir = os.path.join("outputs", tag, filename, "annotated")
 
 if not os.path.exists(images_output_dir):
-    os.makedirs(os.path.join("outputs", TAG, FILENAME, "images"))
+    os.makedirs(os.path.join("outputs", tag, filename, "images"))
 if not os.path.exists(skipped_images_output_dir):
-    os.makedirs(os.path.join("outputs", TAG, FILENAME, "skipped_images"))
+    os.makedirs(os.path.join("outputs", tag, filename, "skipped_images"))
 if not os.path.exists(labels_output_dir):
-    os.makedirs(os.path.join("outputs", TAG, FILENAME, "labels"))
+    os.makedirs(os.path.join("outputs", tag, filename, "labels"))
 if not os.path.exists(annotated_output_dir):
-    os.makedirs(os.path.join("outputs", TAG, FILENAME, "annotated"))
+    os.makedirs(os.path.join("outputs", tag, filename, "annotated"))
 
 
 # Capture video and get fps and number of frames
-full_name = FILENAME + ".mp4"
-cap = cv2.VideoCapture(os.path.join(VIDEO_PATH, full_name))
+full_name = filename + ".mp4"
+cap = cv2.VideoCapture(os.path.join(video_path, full_name))
 fps = cap.get(cv2.CAP_PROP_FPS)
 number_of_frames = cap.get(cv2.CAP_PROP_FRAME_COUNT) 
 
 # Calculate start and end frames given start and end seconds and video fps
-start_frame = int(START_SEC * fps)
-end_frame = END_SEC * fps
+start_frame = int(start_sec * fps)
+end_frame = end_sec * fps
 if end_frame > number_of_frames:
     end_frame = number_of_frames
 
@@ -80,9 +97,9 @@ while(cap.isOpened()):
     boxes, logits, phrases = predict(
         model=model,
         image=image,
-        caption=TEXT_PROMPT,
-        box_threshold=BOX_TRESHOLD,
-        text_threshold=TEXT_TRESHOLD,
+        caption=text_prompt,
+        box_threshold=box_threshold,
+        text_threshold=text_threshold,
         device="cpu"
     )
     print(f"Inference time: {time() - start_time}")
