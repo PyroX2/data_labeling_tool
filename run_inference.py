@@ -21,11 +21,14 @@ model = load_model("GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.p
 
 # Set output dirs and create them if they don't exist
 images_output_dir = os.path.join("outputs", TAG, FILENAME, "images")
+skipped_images_output_dir = os.path.join("outputs", TAG, FILENAME, "skipped_images")
 labels_output_dir = os.path.join("outputs", TAG, FILENAME, "labels")
 annotated_output_dir = os.path.join("outputs", TAG, FILENAME, "annotated")
 
 if not os.path.exists(images_output_dir):
     os.makedirs(os.path.join("outputs", TAG, FILENAME, "images"))
+if not os.path.exists(skipped_images_output_dir):
+    os.makedirs(os.path.join("outputs", TAG, FILENAME, "skipped_images"))
 if not os.path.exists(labels_output_dir):
     os.makedirs(os.path.join("outputs", TAG, FILENAME, "labels"))
 if not os.path.exists(annotated_output_dir):
@@ -110,7 +113,7 @@ while(cap.isOpened()):
             bbox_width = box[3].item()
             bboxes.append([bbox_x_center, bbox_y_center, bbox_height, bbox_width])
     else:
-        cv2.imwrite(os.path.join(images_output_dir, f"{file_index}.jpg"), image_source)
+        cv2.imwrite(os.path.join(skipped_images_output_dir, f"{file_index}.jpg"), image_source)
         continue
     
     # Save outputs
