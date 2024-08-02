@@ -17,10 +17,16 @@ TAG = "cloudy"
 video_path = "/mnt/nas-data/HardKill/hardkill_videos/data_validation_videos/rgb_1080p"
 file_name = 'dsv_rgb_1080p_nalot_air_9s_cloudy'
 
-if os.path.exists(os.path.join("outputs", TAG, file_name, "images")):
-    os.mkdir(os.path.join("outputs", TAG, file_name, "images"))
-if os.path.exists(os.path.join("outputs", TAG, file_name, "labels")):
-    os.mkdir(os.path.join("outputs", TAG, file_name, "labels"))
+images_output_dir = os.path.join("outputs", TAG, file_name, "images")
+labels_output_dir = os.path.join("outputs", TAG, file_name, "labels")
+annotated_output_dir = os.path.join("outputs", TAG, file_name, "annotated")
+
+if not os.path.exists(images_output_dir):
+    os.makedirs(os.path.join("outputs", TAG, file_name, "images"))
+if not os.path.exists(labels_output_dir):
+    os.makedirs(os.path.join("outputs", TAG, file_name, "labels"))
+if not os.path.exists(annotated_output_dir):
+    os.makedirs(os.path.join("outputs", TAG, file_name, "annotated"))
 
 
 full_name = file_name + ".mp4"
@@ -76,21 +82,26 @@ while(cap.isOpened()):
     bboxes = []
     if boxes.size()[0] != 0:
         for box in boxes:
-            bbox_x_center = box[0] * height
-            bbox_y_center = box[1] * width
-            bbox_height = box[2] * height
-            bbox_width = box[3] * width
+            bbox_x_center = box[0].item()
+            bbox_y_center = box[1].item()
+            bbox_height = box[2] .item()
+            bbox_width = box[3].item()
 
             bboxes.append([bbox_x_center, bbox_y_center, bbox_height, bbox_width])
 
     annotated_frame = annotate(image_source=image_source, boxes=boxes, logits=logits, phrases=phrases)
 
+    existing_indexes = [int(index[:-4]) for index in os.listdir(images_output_dir)]
+    if len(existing_indexes) == 0:
+        max_index = -1
+    else:
+        max_index = max(existing_indexes)
     annotation = {"filename": full_name, "image_name": f"frame_{i}", "bboxes": bboxes}
-    cv2.imwrite(os.path.join("outputs", TAG, file_name, "annotated", f"annotated_{i}.jpg"), annotated_frame)
-    cv2.imwrite(os.path.join("outputs", TAG, file_name, "images", f"frame_{i}.jpg"), annotated_frame)
-    with open(os.path.join("outputs", TAG, file_name, "labels", f"frame_{i}.txt"), "w+") as f:
+    cv2.imwrite(os.path.join(annotated_output_dir, f"{max_index+1}.jpg"), annotated_frame)
+    cv2.imwrite(os.path.join(images_output_dir, f"{max_index+1}.jpg"), image_source)
+    with open(os.path.join(labels_output_dir, f"{max_index+1}.txt"), "w+") as f:
         for bbox in bboxes:
-            f.write(bbox)
+            f.write(str(bbox)[1:-1].replace(',', ''))
 
     i += 1
 
