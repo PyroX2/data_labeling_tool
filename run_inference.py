@@ -84,17 +84,6 @@ while(cap.isOpened()):
     )
     print(f"Inference time: {time() - start_time}")
 
-    # Save bboxes
-    bboxes = []
-    if boxes.size()[0] != 0:
-        for box in boxes:
-            bbox_x_center = box[0].item()
-            bbox_y_center = box[1].item()
-            bbox_height = box[2] .item()
-            bbox_width = box[3].item()
-            bboxes.append([bbox_x_center, bbox_y_center, bbox_height, bbox_width])
-
-
     # Draw bounding boxes
     annotated_frame = annotate(image_source=image_source, boxes=boxes, logits=logits, phrases=phrases)
 
@@ -104,11 +93,30 @@ while(cap.isOpened()):
         max_index = -1
     else:
         max_index = max(existing_indexes)
+    
+    # Get current frame index as string 
+    curent_index = str(max_index+1)
         
+    # Add 0s to the beggining of filename so that all filenames have the same length (COCO like naming)
+    file_index = "0"*(12 - len(curent_index)) + curent_index
+        
+    # Save bboxes
+    bboxes = []
+    if boxes.size()[0] != 0:
+        for box in boxes:
+            bbox_x_center = box[0].item()
+            bbox_y_center = box[1].item()
+            bbox_height = box[2] .item()
+            bbox_width = box[3].item()
+            bboxes.append([bbox_x_center, bbox_y_center, bbox_height, bbox_width])
+    else:
+        cv2.imwrite(os.path.join(images_output_dir, f"{file_index}.jpg"), image_source)
+        continue
+    
     # Save outputs
-    cv2.imwrite(os.path.join(annotated_output_dir, f"{max_index+1}.jpg"), annotated_frame)
-    cv2.imwrite(os.path.join(images_output_dir, f"{max_index+1}.jpg"), image_source)
-    with open(os.path.join(labels_output_dir, f"{max_index+1}.txt"), "w+") as f:
+    cv2.imwrite(os.path.join(annotated_output_dir, f"{file_index}.jpg"), annotated_frame)
+    cv2.imwrite(os.path.join(images_output_dir, f"{file_index}.jpg"), image_source)
+    with open(os.path.join(labels_output_dir, f"{file_index}.txt"), "w+") as f:
         for bbox in bboxes:
             f.write(str(bbox)[1:-1].replace(',', ''))
 
