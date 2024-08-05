@@ -4,61 +4,77 @@ import cv2
 from PIL import Image
 from time import time
 import os
+import argparse
+import utils
 
 
-# Set constants
-TEXT_PROMPT = "drone"
-BOX_TRESHOLD = 0.35
-TEXT_TRESHOLD = 0.25
-START_SEC = 4
-END_SEC = 5
-TAG = "cloudy"
-VIDEO_PATH = "/mnt/nas-data/HardKill/hardkill_videos/data_validation_videos/rgb_1080p"
-FILENAME = 'dsv_rgb_1080p_nalot_air_9s_cloudy'
+# Create argparser
+parser = argparse.ArgumentParser(
+                    prog='auto_labeling',
+                    description='Creates labels automatically using GroundingDINO')
+parser.add_argument('--video_path', "-i", required=True, type=str, help="Path to input video")
+parser.add_argument('--text_prompt', "-t", required=True, type=str, help="Name of object to label")
+parser.add_argument(
+    "--output_dir", "-o", type=str, default="outputs", required=True, help="output directory"
+)
+parser.add_argument('--start_sec', required=False, type=float, default=0, help="Second to start labeling from. Default is 0")
+parser.add_argument('--end_sec', required=False, type=float, default=0, help="Second to end labeling on. Default is the last frame of the video")
+parser.add_argument("--box_threshold", type=float, default=0.35, help="box threshold")
+parser.add_argument("--text_threshold", type=float, default=0.25, help="text threshold")
+parser.add_argument("--cpu_only", action="store_true", help="running on cpu only!", default=False)
+parser.add_argument("--tag", type=str, default="no_tag")
+
+args = parser.parse_args()
+
+# Set arguments
+text_prompt = args.text_prompt
+box_threshold = args.box_threshold
+text_threshold = args.text_threshold
+start_sec = args.start_sec
+end_sec = args.end_sec
+tag = args.tag
+output_dir = args.output_dir
+device = "cpu" if args.cpu_only else "cuda"
+
+video_dir = args.video_path[:args.video_path.rfind("/")] # Directory where processed video is stored in
+filename_ext = args.video_path[args.video_path.rfind("/")+1:] # Filename with extension
+filename = filename_ext[:filename_ext.rfind(".")] # Filename without extension
 
 # Load model weights
-model = load_model("GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py", "weights/groundingdino_swint_ogc.pth", device="cpu")
+model = load_model("GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py", "weights/groundingdino_swint_ogc.pth", device=device)
 
 # Set output dirs and create them if they don't exist
-images_output_dir = os.path.join("outputs", TAG, FILENAME, "images")
-skipped_images_output_dir = os.path.join("outputs", TAG, FILENAME, "skipped_images")
-labels_output_dir = os.path.join("outputs", TAG, FILENAME, "labels")
-annotated_output_dir = os.path.join("outputs", TAG, FILENAME, "annotated")
+images_output_dir = os.path.join(output_dir, tag, filename, "images")
+skipped_images_output_dir = os.path.join(output_dir, tag, filename, "skipped_images")
+labels_output_dir = os.path.join(output_dir, tag, filename, "labels")
+annotated_output_dir = os.path.join(output_dir, tag, filename, "annotated")
 
 if not os.path.exists(images_output_dir):
-    os.makedirs(os.path.join("outputs", TAG, FILENAME, "images"))
+    os.makedirs(os.path.join(output_dir, tag, filename, "images"))
 if not os.path.exists(skipped_images_output_dir):
-    os.makedirs(os.path.join("outputs", TAG, FILENAME, "skipped_images"))
+    os.makedirs(os.path.join(output_dir, tag, filename, "skipped_images"))
 if not os.path.exists(labels_output_dir):
-    os.makedirs(os.path.join("outputs", TAG, FILENAME, "labels"))
+    os.makedirs(os.path.join(output_dir, tag, filename, "labels"))
 if not os.path.exists(annotated_output_dir):
-    os.makedirs(os.path.join("outputs", TAG, FILENAME, "annotated"))
+    os.makedirs(os.path.join(output_dir, tag, filename, "annotated"))
 
 
 # Capture video and get fps and number of frames
-full_name = FILENAME + ".mp4"
-cap = cv2.VideoCapture(os.path.join(VIDEO_PATH, full_name))
+cap = cv2.VideoCapture(os.path.join(video_dir, filename_ext))
 fps = cap.get(cv2.CAP_PROP_FPS)
 number_of_frames = cap.get(cv2.CAP_PROP_FRAME_COUNT) 
 
 # Calculate start and end frames given start and end seconds and video fps
-start_frame = int(START_SEC * fps)
-end_frame = END_SEC * fps
+start_frame = int(start_sec * fps)
+end_frame = end_sec * fps
 if end_frame > number_of_frames:
     end_frame = number_of_frames
 
 
-# Add image preprocessing
-transform = T.Compose(
-    [
-        T.RandomResize([800], max_size=1333),
-        T.ToTensor(),
-        T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-    ]
-)
 
 i = 0
 while(cap.isOpened()):
+    # Read frame
     ret, frame = cap.read()
     
     # if current frame is before start frame read next one 
@@ -69,29 +85,29 @@ while(cap.isOpened()):
     # Copy frame as numpy ndarray
     image_source = frame.copy() 
 
-    # Convert frame to PIL Image
-    image = Image.fromarray(frame).convert("RGB")
-
     # Preprocess image
-    image, _ = transform(image, None)
+    image = utils.preprocess_image(frame) 
 
     # Detect objects and calculate inference time
     start_time = time()
     boxes, logits, phrases = predict(
         model=model,
         image=image,
-        caption=TEXT_PROMPT,
-        box_threshold=BOX_TRESHOLD,
-        text_threshold=TEXT_TRESHOLD,
-        device="cpu"
+        caption=text_prompt,
+        box_threshold=box_threshold,
+        text_threshold=text_threshold,
+        device=device
     )
+    
+    # Calculate and print inference time
     print(f"Inference time: {time() - start_time}")
 
     # Draw bounding boxes
     annotated_frame = annotate(image_source=image_source, boxes=boxes, logits=logits, phrases=phrases)
 
     # Get maximum index in images output dir
-    existing_indexes = [int(index[:-4]) for index in os.listdir(images_output_dir)]
+    existing_indexes = [int(index[:-4]) for index in os.listdir(images_output_dir)] # Reads existing indexes in images output dir
+    existing_indexes = list(set(existing_indexes) | set([int(index[:-4]) for index in os.listdir(skipped_images_output_dir)])) # Adds indexes from skipped images output dir
     if len(existing_indexes) == 0:
         max_index = -1
     else:
@@ -123,9 +139,9 @@ while(cap.isOpened()):
         for bbox in bboxes:
             f.write(str(bbox)[1:-1].replace(',', ''))
 
-    i += 1
-
+    # Print index of processed frame
     print("Processed frame index:", i)
+    i += 1
 
     # If frame is equal to end frame brake the loop 
     if i > end_frame:
