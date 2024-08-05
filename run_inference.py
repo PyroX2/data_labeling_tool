@@ -5,6 +5,7 @@ from PIL import Image
 from time import time
 import os
 import argparse
+import utils
 
 
 # Create argparser
@@ -68,17 +69,11 @@ end_frame = end_sec * fps
 if end_frame > number_of_frames:
     end_frame = number_of_frames
 
-# Add image preprocessing
-transform = T.Compose(
-    [
-        T.RandomResize([800], max_size=1333),
-        T.ToTensor(),
-        T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-    ]
-)
+
 
 i = 0
 while(cap.isOpened()):
+    # Read frame
     ret, frame = cap.read()
     
     # if current frame is before start frame read next one 
@@ -89,11 +84,8 @@ while(cap.isOpened()):
     # Copy frame as numpy ndarray
     image_source = frame.copy() 
 
-    # Convert frame to PIL Image
-    image = Image.fromarray(frame).convert("RGB")
-
     # Preprocess image
-    image, _ = transform(image, None)
+    image = utils.preprocess_image(frame) 
 
     # Detect objects and calculate inference time
     start_time = time()
