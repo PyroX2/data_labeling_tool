@@ -21,7 +21,7 @@ parser.add_argument('--start_sec', required=False, type=float, default=0, help="
 parser.add_argument('--end_sec', required=False, type=float, default=0, help="Second to end labeling on. Default is the last frame of the video")
 parser.add_argument("--box_threshold", type=float, default=0.35, help="box threshold")
 parser.add_argument("--text_threshold", type=float, default=0.25, help="text threshold")
-parser.add_argument("--cpu-only", action="store_true", help="running on cpu only!", default=False)
+parser.add_argument("--cpu_only", action="store_true", help="running on cpu only!", default=False)
 parser.add_argument("--tag", type=str, default="no_tag")
 
 args = parser.parse_args()
@@ -34,13 +34,14 @@ start_sec = args.start_sec
 end_sec = args.end_sec
 tag = args.tag
 output_dir = args.output_dir
+device = "cpu" if args.cpu_only else "cuda"
 
 video_dir = args.video_path[:args.video_path.rfind("/")] # Directory where processed video is stored in
 filename_ext = args.video_path[args.video_path.rfind("/")+1:] # Filename with extension
 filename = filename_ext[:filename_ext.rfind(".")] # Filename without extension
 
 # Load model weights
-model = load_model("GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py", "weights/groundingdino_swint_ogc.pth", device="cpu")
+model = load_model("GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py", "weights/groundingdino_swint_ogc.pth", device=device)
 
 # Set output dirs and create them if they don't exist
 images_output_dir = os.path.join(output_dir, tag, filename, "images")
@@ -95,7 +96,7 @@ while(cap.isOpened()):
         caption=text_prompt,
         box_threshold=box_threshold,
         text_threshold=text_threshold,
-        device="cpu"
+        device=device
     )
     
     # Calculate and print inference time
