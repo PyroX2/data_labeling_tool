@@ -105,6 +105,8 @@ while(cap.isOpened()):
         text_threshold=text_threshold,
         device="cpu"
     )
+    
+    # Calculate and print inference time
     print(f"Inference time: {time() - start_time}")
 
     # Draw bounding boxes
@@ -144,9 +146,9 @@ while(cap.isOpened()):
         for bbox in bboxes:
             f.write(str(bbox)[1:-1].replace(',', ''))
 
-    i += 1
-
+    # Print index of processed frame
     print("Processed frame index:", i)
+    i += 1
 
     # If frame is equal to end frame brake the loop 
     if i > end_frame:
