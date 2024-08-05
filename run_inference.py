@@ -7,10 +7,11 @@ import os
 import argparse
 
 
+# Create argparser
 parser = argparse.ArgumentParser(
                     prog='auto_labeling',
                     description='Creates labels automatically using GroundingDINO')
-parser.add_argument('--input_video', "-i", required=True, type=str, help="Path to input video")
+parser.add_argument('--video_path', "-i", required=True, type=str, help="Path to input video")
 parser.add_argument('--text_prompt', "-t", required=True, type=str, help="Name of object to label")
 parser.add_argument(
     "--output_dir", "-o", type=str, default="outputs", required=True, help="output directory"
@@ -20,41 +21,44 @@ parser.add_argument('--end_sec', required=False, type=float, default=0, help="Se
 parser.add_argument("--box_threshold", type=float, default=0.35, help="box threshold")
 parser.add_argument("--text_threshold", type=float, default=0.25, help="text threshold")
 parser.add_argument("--cpu-only", action="store_true", help="running on cpu only!", default=False)
+parser.add_argument("--tag", type=str, default="no_tag")
 
 args = parser.parse_args()
 
-# Set constants
+# Set arguments
 text_prompt = args.text_prompt
 box_threshold = args.box_threshold
 text_threshold = args.text_threshold
 start_sec = args.start_sec
 end_sec = args.end_sec
 tag = args.tag
-video_path = "/mnt/nas-data/HardKill/hardkill_videos/data_validation_videos/rgb_1080p"
-filename = 'dsv_rgb_1080p_nalot_air_9s_cloudy'
+output_dir = args.output_dir
+
+video_dir = args.video_path[:args.video_path.rfind("/")] # Directory where processed video is stored in
+filename_ext = args.video_path[args.video_path.rfind("/")+1:] # Filename with extension
+filename = filename_ext[:filename_ext.rfind(".")] # Filename without extension
 
 # Load model weights
 model = load_model("GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py", "weights/groundingdino_swint_ogc.pth", device="cpu")
 
 # Set output dirs and create them if they don't exist
-images_output_dir = os.path.join("outputs", tag, filename, "images")
-skipped_images_output_dir = os.path.join("outputs", tag, filename, "skipped_images")
-labels_output_dir = os.path.join("outputs", tag, filename, "labels")
-annotated_output_dir = os.path.join("outputs", tag, filename, "annotated")
+images_output_dir = os.path.join(output_dir, tag, filename, "images")
+skipped_images_output_dir = os.path.join(output_dir, tag, filename, "skipped_images")
+labels_output_dir = os.path.join(output_dir, tag, filename, "labels")
+annotated_output_dir = os.path.join(output_dir, tag, filename, "annotated")
 
 if not os.path.exists(images_output_dir):
-    os.makedirs(os.path.join("outputs", tag, filename, "images"))
+    os.makedirs(os.path.join(output_dir, tag, filename, "images"))
 if not os.path.exists(skipped_images_output_dir):
-    os.makedirs(os.path.join("outputs", tag, filename, "skipped_images"))
+    os.makedirs(os.path.join(output_dir, tag, filename, "skipped_images"))
 if not os.path.exists(labels_output_dir):
-    os.makedirs(os.path.join("outputs", tag, filename, "labels"))
+    os.makedirs(os.path.join(output_dir, tag, filename, "labels"))
 if not os.path.exists(annotated_output_dir):
-    os.makedirs(os.path.join("outputs", tag, filename, "annotated"))
+    os.makedirs(os.path.join(output_dir, tag, filename, "annotated"))
 
 
 # Capture video and get fps and number of frames
-full_name = filename + ".mp4"
-cap = cv2.VideoCapture(os.path.join(video_path, full_name))
+cap = cv2.VideoCapture(os.path.join(video_dir, filename_ext))
 fps = cap.get(cv2.CAP_PROP_FPS)
 number_of_frames = cap.get(cv2.CAP_PROP_FRAME_COUNT) 
 
@@ -63,7 +67,6 @@ start_frame = int(start_sec * fps)
 end_frame = end_sec * fps
 if end_frame > number_of_frames:
     end_frame = number_of_frames
-
 
 # Add image preprocessing
 transform = T.Compose(
