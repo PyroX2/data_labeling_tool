@@ -1,0 +1,4 @@
+outputs/
+weights/
+GroudningDINO/
+__pycache__
