@@ -111,7 +111,8 @@ while(cap.isOpened()):
     annotated_frame = annotate(image_source=image_source, boxes=boxes, logits=logits, phrases=phrases)
 
     # Get maximum index in images output dir
-    existing_indexes = [int(index[:-4]) for index in os.listdir(images_output_dir)]
+    existing_indexes = [int(index[:-4]) for index in os.listdir(images_output_dir)] # Reads existing indexes in images output dir
+    existing_indexes = list(set(existing_indexes) | set([int(index[:-4]) for index in os.listdir(skipped_images_output_dir)])) # Adds indexes from skipped images output dir
     if len(existing_indexes) == 0:
         max_index = -1
     else:
