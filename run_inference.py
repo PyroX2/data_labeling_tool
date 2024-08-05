@@ -1,9 +1,11 @@
-from groundingdino.util.inference import load_model, predict, annotate
+from groundingdino.util.inference import annotate
 import cv2
 from time import time
 import os
 import argparse
 import utils
+from tracker import Tracker
+from model import GroundingDINOModel
 
 
 # Create argparser
@@ -38,24 +40,16 @@ video_dir = args.video_path[:args.video_path.rfind("/")] # Directory where proce
 filename_ext = args.video_path[args.video_path.rfind("/")+1:] # Filename with extension
 filename = filename_ext[:filename_ext.rfind(".")] # Filename without extension
 
-# Load model weights
-model = load_model("GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py", "weights/groundingdino_swint_ogc.pth", device=device)
+model_config_path = "GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py"
+model_weights_path = "weights/groundingdino_swint_ogc.pth"
 
-# Set output dirs and create them if they don't exist
-images_output_dir = os.path.join(output_dir, tag, filename, "images")
-skipped_images_output_dir = os.path.join(output_dir, tag, filename, "skipped_images")
-labels_output_dir = os.path.join(output_dir, tag, filename, "labels")
-annotated_output_dir = os.path.join(output_dir, tag, filename, "annotated")
+# Create Grounding DINO model
+model = GroundingDINOModel(model_config_path, model_weights_path, device, text_prompt, box_threshold, text_threshold)
 
-if not os.path.exists(images_output_dir):
-    os.makedirs(os.path.join(output_dir, tag, filename, "images"))
-if not os.path.exists(skipped_images_output_dir):
-    os.makedirs(os.path.join(output_dir, tag, filename, "skipped_images"))
-if not os.path.exists(labels_output_dir):
-    os.makedirs(os.path.join(output_dir, tag, filename, "labels"))
-if not os.path.exists(annotated_output_dir):
-    os.makedirs(os.path.join(output_dir, tag, filename, "annotated"))
+tracker = Tracker(text_prompt)
 
+# Prepare dirs for outputs
+images_output_dir, skipped_images_output_dir, labels_output_dir, annotated_output_dir = utils.prepare_output_dirs(output_dir, tag, filename)
 
 # Capture video and get fps and number of frames
 cap = cv2.VideoCapture(os.path.join(video_dir, filename_ext))
@@ -86,20 +80,21 @@ while(cap.isOpened()):
 
     # Detect objects and calculate inference time
     start_time = time()
-    boxes, logits, phrases = predict(
-        model=model,
-        image=image,
-        caption=text_prompt,
-        box_threshold=box_threshold,
-        text_threshold=text_threshold,
-        device=device
-    )
+    
+    # Find object on new frame
+    if tracker.initialized and i % 50 != 0:
+        bboxes, logits, phrases = tracker.predict(image_source)
+    else:
+        bboxes, logits, phrases = model.predict(image)
+        if utils.validate_bboxes(bboxes):
+            tracker.initialize_tracker(image_source, bboxes[0].tolist())
+            tracker.initialized = True
     
     # Calculate and print inference time
     print(f"Inference time: {time() - start_time}")
 
     # Draw bounding boxes
-    annotated_frame = annotate(image_source=image_source, boxes=boxes, logits=logits, phrases=phrases)
+    annotated_frame = annotate(image_source=image_source, boxes=bboxes, logits=logits, phrases=phrases)
 
     # Get maximum index in images output dir
     existing_indexes = [int(index[:-4]) for index in os.listdir(images_output_dir)] # Reads existing indexes in images output dir
@@ -116,14 +111,14 @@ while(cap.isOpened()):
     file_index = "0"*(12 - len(curent_index)) + curent_index
         
     # Save bboxes
-    bboxes = []
-    if boxes.size()[0] != 0:
-        for box in boxes:
+    bboxes_list = []
+    if bboxes.size()[0] != 0:
+        for box in bboxes:
             bbox_x_center = box[0].item()
             bbox_y_center = box[1].item()
             bbox_height = box[2] .item()
             bbox_width = box[3].item()
-            bboxes.append([bbox_x_center, bbox_y_center, bbox_height, bbox_width])
+            bboxes_list.append([bbox_x_center, bbox_y_center, bbox_height, bbox_width])
     else:
         cv2.imwrite(os.path.join(skipped_images_output_dir, f"{file_index}.jpg"), image_source)
         continue
@@ -132,7 +127,7 @@ while(cap.isOpened()):
     cv2.imwrite(os.path.join(annotated_output_dir, f"{file_index}.jpg"), annotated_frame)
     cv2.imwrite(os.path.join(images_output_dir, f"{file_index}.jpg"), image_source)
     with open(os.path.join(labels_output_dir, f"{file_index}.txt"), "w+") as f:
-        for bbox in bboxes:
+        for bbox in bboxes_list:
             f.write(str(bbox)[1:-1].replace(',', ''))
 
     # Print index of processed frame
@@ -142,3 +137,9 @@ while(cap.isOpened()):
     # If frame is equal to end frame brake the loop 
     if i > end_frame:
         break
+    
+def main():
+    pass
+
+if __name__ == '__main__':
+    main()
