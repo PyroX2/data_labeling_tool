@@ -1,7 +1,5 @@
 from groundingdino.util.inference import load_model, predict, annotate
-import groundingdino.datasets.transforms as T
 import cv2
-from PIL import Image
 from time import time
 import os
 import argparse
@@ -69,8 +67,6 @@ start_frame = int(start_sec * fps)
 end_frame = end_sec * fps
 if end_frame > number_of_frames:
     end_frame = number_of_frames
-
-
 
 i = 0
 while(cap.isOpened()):
