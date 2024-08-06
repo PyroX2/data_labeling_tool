@@ -55,7 +55,7 @@ def main():
     
     output_path_with_filename = os.path.join(output_dir, filename)
     if not os.path.exists(output_path_with_filename):
-        os.makedirs()
+        os.makedirs(output_path_with_filename)
     for tag in tags:
         filetagging.add_tag(tag, output_path_with_filename)
     # Prepare dirs for outputs
@@ -68,7 +68,7 @@ def main():
 
     # Calculate start and end frames given start and end seconds and video fps
     start_frame = int(start_sec * fps)
-    end_frame = end_sec * fps
+    end_frame = end_sec * fps    
     if end_frame > number_of_frames:
         end_frame = number_of_frames
 
