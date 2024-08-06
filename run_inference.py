@@ -6,6 +6,7 @@ import argparse
 import utils
 from tracker import Tracker
 from model import GroundingDINOModel
+import filetagging
 
 
 
@@ -35,7 +36,8 @@ def main():
     text_threshold = args.text_threshold
     start_sec = args.start_sec
     end_sec = args.end_sec
-    tag = args.tag
+    tags = args.tag
+    tags = tags.split(' ')
     output_dir = args.output_dir
     device = "cpu" if args.cpu_only else "cuda"
 
@@ -50,9 +52,14 @@ def main():
     model = GroundingDINOModel(model_config_path, model_weights_path, device, text_prompt, box_threshold, text_threshold)
 
     tracker = Tracker(text_prompt)
-
+    
+    output_path_with_filename = os.path.join(output_dir, filename)
+    if not os.path.exists(output_path_with_filename):
+        os.makedirs()
+    for tag in tags:
+        filetagging.add_tag(tag, output_path_with_filename)
     # Prepare dirs for outputs
-    images_output_dir, skipped_images_output_dir, labels_output_dir, annotated_output_dir = utils.prepare_output_dirs(output_dir, tag, filename)
+    images_output_dir, skipped_images_output_dir, labels_output_dir, annotated_output_dir = utils.prepare_output_dirs(output_dir, filename)
 
     # Capture video and get fps and number of frames
     cap = cv2.VideoCapture(os.path.join(video_dir, filename_ext))
@@ -105,6 +112,8 @@ def main():
         # Get maximum index in images output dir
         existing_indexes = [int(index[:-4]) for index in os.listdir(images_output_dir)] # Reads existing indexes in images output dir
         existing_indexes = list(set(existing_indexes) | set([int(index[:-4]) for index in os.listdir(skipped_images_output_dir)])) # Adds indexes from skipped images output dir
+        
+        # Get maximum existing index
         if len(existing_indexes) == 0:
             max_index = -1
         else:

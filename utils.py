@@ -22,22 +22,22 @@ def preprocess_image(frame: np.ndarray) -> Image:
         
     return image
 
-def prepare_output_dirs(output_dir: str, tag: str, filename: str) -> tuple[str]:
+def prepare_output_dirs(output_dir: str, filename: str) -> tuple[str]:
     # Set output dirs and create them if they don't exist
-    images_output_dir = os.path.join(output_dir, tag, filename, "images")
-    skipped_images_output_dir = os.path.join(output_dir, tag, filename, "skipped_images")
-    labels_output_dir = os.path.join(output_dir, tag, filename, "labels")
-    annotated_output_dir = os.path.join(output_dir, tag, filename, "annotated")
+    images_output_dir = os.path.join(output_dir, filename, "images")
+    skipped_images_output_dir = os.path.join(output_dir, filename, "skipped_images")
+    labels_output_dir = os.path.join(output_dir, filename, "labels")
+    annotated_output_dir = os.path.join(output_dir, filename, "annotated")
 
     # If dirs don't exist create them
     if not os.path.exists(images_output_dir):
-        os.makedirs(os.path.join(output_dir, tag, filename, "images"))
+        os.makedirs(os.path.join(output_dir, filename, "images"))
     if not os.path.exists(skipped_images_output_dir):
-        os.makedirs(os.path.join(output_dir, tag, filename, "skipped_images"))
+        os.makedirs(os.path.join(output_dir, filename, "skipped_images"))
     if not os.path.exists(labels_output_dir):
-        os.makedirs(os.path.join(output_dir, tag, filename, "labels"))
+        os.makedirs(os.path.join(output_dir, filename, "labels"))
     if not os.path.exists(annotated_output_dir):
-        os.makedirs(os.path.join(output_dir, tag, filename, "annotated"))
+        os.makedirs(os.path.join(output_dir, filename, "annotated"))
         
     return images_output_dir, skipped_images_output_dir, labels_output_dir, annotated_output_dir
 
