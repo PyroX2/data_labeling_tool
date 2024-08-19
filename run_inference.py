@@ -27,6 +27,8 @@ def main():
     parser.add_argument("--text_threshold", type=float, default=0.25, help="text threshold")
     parser.add_argument("--cpu_only", action="store_true", help="running on cpu only!", default=False)
     parser.add_argument("--tag", type=str, default="no_tag")
+    parser.add_argument("--check_every", type=int, default=10, help="Number of frames after which Grounding DINO initializes tracker with new detection")
+
 
     args = parser.parse_args()
 
@@ -40,6 +42,7 @@ def main():
     tags = tags.split(' ')
     output_dir = args.output_dir
     device = "cpu" if args.cpu_only else "cuda"
+    reinitialize_tracker_every = args.check_every # After object was detected tracker will continue to track it. This value defines after how many frames Grounding DINO will initialize trakcer with new detection
 
     video_dir = args.video_path[:args.video_path.rfind("/")] # Directory where processed video is stored in
     filename_ext = args.video_path[args.video_path.rfind("/")+1:] # Filename with extension
@@ -95,7 +98,7 @@ def main():
         start_time = time()
         
         # Find object on new frame
-        if tracker.initialized and i % 50 != 0:
+        if tracker.initialized and i % reinitialize_tracker_every != 0:
             bboxes, logits, phrases = tracker.predict(image_source)
         else:
             bboxes, logits, phrases = model.predict(image)
