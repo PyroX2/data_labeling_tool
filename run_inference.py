@@ -89,7 +89,7 @@ def main():
             continue
         
         # Copy frame as numpy ndarray
-        image_source = frame[:,:,::-1].copy() 
+        image_source = frame.copy() 
 
         # Preprocess image
         image = utils.preprocess_image(frame) 
@@ -110,7 +110,7 @@ def main():
         print(f"Inference time: {time() - start_time}")
 
         # Draw bounding boxes
-        annotated_frame = annotate(image_source=image_source, boxes=bboxes, logits=logits, phrases=phrases)
+        annotated_frame = annotate(image_source=image_source[:,:,::-1], boxes=bboxes, logits=logits, phrases=phrases)
 
         # Get maximum index in images output dir
         existing_indexes = [int(index[:-4]) for index in os.listdir(images_output_dir)] # Reads existing indexes in images output dir
