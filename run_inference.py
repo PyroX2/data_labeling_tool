@@ -139,7 +139,7 @@ def main():
                 bbox_y_center = box[1].item()
                 bbox_height = box[2] .item()
                 bbox_width = box[3].item()
-                bboxes_list.append([bbox_x_center, bbox_y_center, bbox_height, bbox_width])
+                bboxes_list.append([0, bbox_x_center, bbox_y_center, bbox_height, bbox_width])
         else:
             cv2.imwrite(os.path.join(skipped_images_output_dir, f"{file_index}.jpg"), image_source)
             continue
