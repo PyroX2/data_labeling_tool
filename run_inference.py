@@ -63,6 +63,9 @@ def main():
         filetagging.add_tag(tag, output_path_with_filename)
     # Prepare dirs for outputs
     images_output_dir, skipped_images_output_dir, labels_output_dir, annotated_output_dir = utils.prepare_output_dirs(output_dir, filename)
+    
+    with open(os.path.join(labels_output_dir, "classes.txt"), "w+") as f:
+        f.write("drone")
 
     # Capture video and get fps and number of frames
     cap = cv2.VideoCapture(os.path.join(video_dir, filename_ext))
