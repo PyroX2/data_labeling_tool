@@ -16,7 +16,6 @@ original_images_dir = os.path.join(cwd, "images")
 annotated_images_dir = os.path.join(cwd, "annotated")
 labels_dir = os.path.join(cwd, "labels")
 
-# cwd = os.getcwd()
 for filename in os.listdir(fixed_dir):
     if filename != "classes.txt":
         with open(os.path.join(fixed_dir, filename), "r") as f:
@@ -28,7 +27,6 @@ for filename in os.listdir(fixed_dir):
         os.rename(os.path.join(skipped_images_dir, image_filename), os.path.join(original_images_dir, image_filename))
         os.rename(os.path.join(fixed_dir, filename), os.path.join(labels_dir, filename))
         
-        # with open(os.path.join(cwd, annotated_images_dir, image_filename), "w+") as f:
         print("Image", image_filename, "saved in dir:", annotated_images_dir)
         cv2.imwrite(os.path.join(annotated_images_dir, image_filename), annotated_image)
         
