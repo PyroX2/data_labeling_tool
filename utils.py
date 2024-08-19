@@ -3,6 +3,7 @@ from PIL import Image
 import groundingdino.datasets.transforms as T
 import os
 import torch
+import cv2
 
 # Add image preprocessing
 TRANSFORM = T.Compose(
@@ -48,3 +49,15 @@ def validate_bboxes(bboxes: torch.Tensor) -> list[bool]:
         return False
     return True
 
+def draw_bboxes(bbox: list[float], image: np.ndarray) -> np.ndarray:
+    height, width, _ = image.shape
+    print(height, width)
+    print(bbox)
+    x1 = bbox[0]*width - bbox[2]*width/2
+    y1 = bbox[1]*height - bbox[3]*height/2
+    x2 = bbox[0]*width + bbox[2]*width/2
+    y2 = bbox[1]*height + bbox[3]*height/2
+    pt1 = [int(x1), int(y1)]
+    pt2 = [int(x2), int(y2)]
+    annotated_image = cv2.rectangle(image, pt1, pt2, (255, 0, 0), 2)
+    return annotated_image
