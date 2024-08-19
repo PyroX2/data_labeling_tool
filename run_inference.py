@@ -72,7 +72,7 @@ def main():
     # Calculate start and end frames given start and end seconds and video fps
     start_frame = int(start_sec * fps)
     end_frame = end_sec * fps    
-    if end_frame > number_of_frames:
+    if end_frame > number_of_frames or end_frame == 0:
         end_frame = number_of_frames
 
     i = 0
