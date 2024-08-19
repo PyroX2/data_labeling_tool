@@ -89,7 +89,7 @@ def main():
             continue
         
         # Copy frame as numpy ndarray
-        image_source = frame.copy() 
+        image_source = frame[:,:,::-1].copy() 
 
         # Preprocess image
         image = utils.preprocess_image(frame) 
