@@ -9,8 +9,6 @@ from model import GroundingDINOModel
 import filetagging
 
 
-
-    
 def main():
     # Create argparser
     parser = argparse.ArgumentParser(
@@ -28,7 +26,6 @@ def main():
     parser.add_argument("--cpu_only", action="store_true", help="running on cpu only!", default=False)
     parser.add_argument("--tag", type=str, default="no_tag")
     parser.add_argument("--check_every", type=int, default=10, help="Number of frames after which Grounding DINO initializes tracker with new detection")
-
 
     args = parser.parse_args()
 
