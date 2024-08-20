@@ -40,3 +40,6 @@ python3 save_fixed.py --input_dir /path/to/output/dir/ --save_empty True
 * Run data labelng tool of your choice, select "images" and "labels" directory and manually check if all annotations are correct. If not correct them.
 
 The code above 
+
+# Filetagging 
+For this file to work you have to install file-taggging (https://github.com/Treecase/file-tagging.git)
