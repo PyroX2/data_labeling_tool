@@ -5,11 +5,14 @@ import os
 import argparse
 import utils
 from tracker import Tracker
-from model import GroundingDINOModel
+from ultralytics import YOLO
 import filetagging
 import logging
 
-def process_video(text_prompt: str, box_threshold: float, text_threshold: float, start_sec: float, end_sec: float, tags: list, output_dir: str, device: str, reinitialize_tracker_every: int, video_path: str, model) -> None:
+
+YOLO_MODEL_PATH = "yolov5n.pt"
+
+def process_video(text_prompt: str, box_threshold: float, text_threshold: float, start_sec: float, end_sec: float, tags: list, output_dir: str, device: str, reinitialize_tracker_every: int, video_path: str, model: YOLO) -> None:
     video_dir = video_path[:video_path.rfind("/")] # Directory where processed video is stored in
     filename_ext = video_path[video_path.rfind("/")+1:] # Filename with extension
     filename = filename_ext[:filename_ext.rfind(".")] # Filename without extension
@@ -73,17 +76,20 @@ def process_video(text_prompt: str, box_threshold: float, text_threshold: float,
             bboxes, logits, phrases = tracker.predict(image_source)
         else:
             logging.debug(f"Processing frame {i} with GroundingDINO")
-            bboxes, logits, phrases = model.predict(image)
+            results = model.predict(image_source)
+            bboxes = results[0].boxes.xywhn
             if utils.validate_bboxes(bboxes):
                 tracker.initialize_tracker(image_source, bboxes[0].tolist())
                 tracker.initialized = True
-        logging.debug(f"Logits: {logits}")
+        logging.debug(f"Logits: {results[0].boxes}")
         
         # Calculate and print inference time
         logging.debug(f"Inference time: {time() - start_time}")
 
         # Draw bounding boxes
-        annotated_frame = annotate(image_source=image_source[:,:,::-1], boxes=bboxes, logits=logits, phrases=phrases)
+        annotated_frame = image_source.copy()
+        for bbox in bboxes:
+            annotated_frame = utils.draw_bboxes(bbox, annotated_frame)
 
         # Get maximum index in images output dir
         existing_indexes = [int(index[:-4]) for index in os.listdir(images_output_dir)] # Reads existing indexes in images output dir
@@ -174,11 +180,8 @@ def main():
         
     logging.basicConfig(format="%(levelname)s | %(asctime)s | %(message)s", level=logging_level) # Make sure appropraite logs are printed
     
-    model_config_path = "GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py"
-    model_weights_path = "weights/groundingdino_swint_ogc.pth"
-
-    # Create Grounding DINO model
-    model = GroundingDINOModel(model_config_path, model_weights_path, device, text_prompt, box_threshold, text_threshold)
+    # Create YOLO model
+    model = YOLO(YOLO_MODEL_PATH)
     
     if video_path.endswith('.mp4'):
         process_video(text_prompt, box_threshold, text_threshold, start_sec, end_sec, tags, output_dir, device, reinitialize_tracker_every, video_path, model)

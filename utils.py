@@ -1,14 +1,15 @@
 import numpy as np
 from PIL import Image
-import groundingdino.datasets.transforms as T
+# import groundingdino.datasets.transforms as T
 import os
 import torch
 import cv2
+from torchvision.transforms import v2 as T
 
 # Add image preprocessing
 TRANSFORM = T.Compose(
     [
-        T.RandomResize([800], max_size=1333),
+        T.Resize((640, 640)),
         T.ToTensor(),
         T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
     ]
@@ -18,8 +19,10 @@ def preprocess_image(frame: np.ndarray) -> Image:
     # Convert frame to PIL Image
     image = Image.fromarray(frame).convert("RGB")
 
-    # Preprocess image
+    # # Preprocess image
     image, _ = TRANSFORM(image, None)
+    # image = frame.copy().resize(1, 3, 640, 640)
+    # image = torch.tensor(image)
         
     return image
 
