@@ -67,7 +67,7 @@ def main():
     # Capture video and get fps and number of frames
     cap = cv2.VideoCapture(os.path.join(video_dir, filename_ext))
     fps = cap.get(cv2.CAP_PROP_FPS)
-    number_of_frames = cap.get(cv2.CAP_PROP_FRAME_COUNT) 
+    number_of_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
     # Calculate start and end frames given start and end seconds and video fps
     start_frame = int(start_sec * fps)
@@ -75,17 +75,22 @@ def main():
     if end_frame > number_of_frames or end_frame == 0:
         end_frame = number_of_frames
 
-    i = 0
+    i = number_of_frames - 1    
+    
     while(cap.isOpened()):
+        cap.set(cv2.CAP_PROP_POS_FRAMES, i)
         # Read frame
         ret, frame = cap.read()
         
+        print(i)
+        
         if frame is None:
-            break
+            i -= 1
+            continue
         
         # if current frame is before start frame read next one 
-        if i < start_frame:
-            i += 1
+        if i > end_frame:
+            i -= 1
             continue
         
         # Copy frame as numpy ndarray
@@ -139,6 +144,7 @@ def main():
                 bboxes_list.append([0, bbox_x_center, bbox_y_center, bbox_height, bbox_width])
         else:
             cv2.imwrite(os.path.join(skipped_images_output_dir, f"{file_index}.jpg"), image_source)
+            i-=1
             continue
         
         # Save outputs
@@ -150,10 +156,10 @@ def main():
 
         # Print index of processed frame
         print("Processed frame index:", i)
-        i += 1
+        i -= 1
 
         # If frame is equal to end frame brake the loop 
-        if i > end_frame:
+        if i < start_frame:
             break
     
 if __name__ == '__main__':
